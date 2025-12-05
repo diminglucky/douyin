@@ -8,7 +8,7 @@
           placeholder="粘贴抖音视频链接"
           size="large"
           allow-clear
-          @pressEnter="handleDownload"
+          @pressEnter="handleSubmit"
         >
           <template #prefix>
             <LinkOutlined style="color: #999" />
@@ -16,8 +16,8 @@
           <template #suffix>
             <a-button 
               type="primary" 
-              :loading="downloading" 
-              @click="handleDownload" 
+              :loading="submitting" 
+              @click="handleSubmit" 
               :disabled="!videoUrl"
             >
               <DownloadOutlined />
@@ -27,18 +27,25 @@
         </a-input>
       </div>
 
-      <!-- 下载结果 -->
-      <div class="result-section" v-if="videoInfo">
-        <div class="video-card">
-          <div class="video-cover" v-if="videoInfo.coverUrl">
-            <img :src="videoInfo.coverUrl" alt="封面" />
+      <!-- 任务列表 -->
+      <div class="task-list" v-if="downloadStore.tasks.length > 0">
+        <div 
+          class="task-card" 
+          v-for="task in downloadStore.tasks" 
+          :key="task.taskId"
+        >
+          <div class="task-cover" v-if="task.coverUrl">
+            <img :src="task.coverUrl" alt="封面" />
           </div>
-          <div class="video-detail">
-            <div class="video-title">{{ videoInfo.title || '无标题' }}</div>
-            <div class="video-meta">
-              <span>@{{ videoInfo.author || '未知' }}</span>
-            </div>
-            <a-tag :color="statusColor" class="status-tag">{{ statusText }}</a-tag>
+          <div class="task-cover placeholder" v-else>
+            <CloudDownloadOutlined />
+          </div>
+          <div class="task-detail">
+            <div class="task-title">{{ task.title || task.awemeId || '加载中...' }}</div>
+            <div class="task-meta" v-if="task.author">@{{ task.author }}</div>
+            <a-tag :color="getStatusColor(task.status)" size="small">
+              {{ getStatusText(task.status) }}
+            </a-tag>
           </div>
         </div>
       </div>
@@ -53,78 +60,66 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { message } from 'ant-design-vue';
 import {
   CloudDownloadOutlined,
   DownloadOutlined,
   LinkOutlined,
 } from '@ant-design/icons-vue';
-import http from '@/store/http';
+import { useDownloadStore } from '@/store/downloadStore';
 
-interface VideoInfo {
-  awemeId: string;
-  title: string;
-  author: string;
-  authorId: string;
-  coverUrl: string;
-  duration: number;
-  isImagePost: boolean;
-  downloadStatus: number; // 0-未下载 1-下载中 2-已完成 3-失败
-  message: string;
-}
-
+const downloadStore = useDownloadStore();
 const videoUrl = ref('');
-const downloading = ref(false);
-const videoInfo = ref<VideoInfo | null>(null);
+const submitting = ref(false);
 
-const statusColor = computed(() => {
-  if (!videoInfo.value) return 'default';
-  switch (videoInfo.value.downloadStatus) {
+const getStatusColor = (status: number) => {
+  switch (status) {
     case 0: return 'blue';
     case 1: return 'orange';
     case 2: return 'green';
     case 3: return 'red';
     default: return 'default';
   }
-});
+};
 
-const statusText = computed(() => {
-  if (!videoInfo.value) return '';
-  switch (videoInfo.value.downloadStatus) {
-    case 0: return '待下载';
+const getStatusText = (status: number) => {
+  switch (status) {
+    case 0: return '等待中';
     case 1: return '下载中';
     case 2: return '已完成';
     case 3: return '失败';
     default: return '未知';
   }
-});
+};
 
-const handleDownload = async () => {
+const handleSubmit = async () => {
   if (!videoUrl.value.trim()) {
     message.warning('请输入视频链接');
     return;
   }
 
-  downloading.value = true;
-  videoInfo.value = null;
+  submitting.value = true;
 
   try {
-    const res: any = await http.post('/api/Parse/download', { url: videoUrl.value.trim() });
-    if (res.code === 0 && res.data) {
-      videoInfo.value = res.data;
-      message.success('下载成功');
-    } else {
-      videoInfo.value = res.data;
-      message.error(res.error || '下载失败');
-    }
+    await downloadStore.submitTask(videoUrl.value.trim());
+    message.success('已添加到下载队列');
+    videoUrl.value = '';
   } catch (error: any) {
-    message.error(error.message || '下载请求失败');
+    message.error(error.message || '提交失败');
   } finally {
-    downloading.value = false;
+    submitting.value = false;
   }
 };
 
+onMounted(() => {
+  // 加载已有任务
+  downloadStore.fetchTasks();
+});
+
+onUnmounted(() => {
+  // 组件销毁时不停止轮询，保持后台运行
+});
 </script>
 
 <style scoped lang="less">
@@ -133,7 +128,7 @@ const handleDownload = async () => {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 60px 24px;
+  padding: 40px 24px;
 }
 
 .parse-container {
@@ -158,24 +153,27 @@ const handleDownload = async () => {
   }
 }
 
-.result-section {
-  margin-top: 32px;
-}
-
-.video-card {
+.task-list {
+  margin-top: 24px;
   display: flex;
-  gap: 16px;
-  padding: 16px;
-  background: var(--bg-color-secondary, rgba(255, 255, 255, 0.04));
-  border-radius: 12px;
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+  flex-direction: column;
+  gap: 12px;
 }
 
-.video-cover {
-  width: 100px;
-  height: 130px;
+.task-card {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.task-cover {
+  width: 60px;
+  height: 80px;
   flex-shrink: 0;
-  border-radius: 8px;
+  border-radius: 6px;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.05);
 
@@ -184,9 +182,17 @@ const handleDownload = async () => {
     height: 100%;
     object-fit: cover;
   }
+
+  &.placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: rgba(255, 255, 255, 0.2);
+  }
 }
 
-.video-detail {
+.task-detail {
   flex: 1;
   min-width: 0;
   display: flex;
@@ -194,11 +200,11 @@ const handleDownload = async () => {
   justify-content: center;
 }
 
-.video-title {
-  font-size: 14px;
+.task-title {
+  font-size: 13px;
   font-weight: 500;
-  line-height: 1.5;
-  margin-bottom: 8px;
+  line-height: 1.4;
+  margin-bottom: 4px;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -207,14 +213,10 @@ const handleDownload = async () => {
   -webkit-box-orient: vertical;
 }
 
-.video-meta {
+.task-meta {
   color: rgba(255, 255, 255, 0.45);
-  font-size: 13px;
-  margin-bottom: 12px;
-}
-
-.status-tag {
-  width: fit-content;
+  font-size: 12px;
+  margin-bottom: 6px;
 }
 
 .empty-tip {

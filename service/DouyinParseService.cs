@@ -195,6 +195,95 @@ namespace dy.net.service
         }
 
         /// <summary>
+        /// 提交异步下载任务（立即返回任务ID）
+        /// </summary>
+        public async Task<DownloadTask> SubmitDownloadTaskAsync(string url)
+        {
+            // 1. 提取视频ID
+            var awemeId = await ExtractAwemeIdAsync(url);
+            if (string.IsNullOrWhiteSpace(awemeId))
+            {
+                return new DownloadTask
+                {
+                    Status = DownloadTaskStatus.Failed,
+                    Message = "无法解析视频ID"
+                };
+            }
+
+            // 2. 添加到任务队列
+            var taskId = DownloadTaskManager.Instance.AddTask(url, awemeId);
+            var task = DownloadTaskManager.Instance.GetTask(taskId);
+
+            // 3. 启动后台处理
+            _ = ProcessTasksAsync();
+
+            return task;
+        }
+
+        /// <summary>
+        /// 后台处理下载任务
+        /// </summary>
+        private async Task ProcessTasksAsync()
+        {
+            if (DownloadTaskManager.Instance.IsProcessing)
+                return;
+
+            DownloadTaskManager.Instance.IsProcessing = true;
+
+            try
+            {
+                while (true)
+                {
+                    var taskId = DownloadTaskManager.Instance.DequeueTask();
+                    if (taskId == null) break;
+
+                    var task = DownloadTaskManager.Instance.GetTask(taskId);
+                    if (task == null) continue;
+
+                    try
+                    {
+                        // 更新状态为下载中
+                        DownloadTaskManager.Instance.UpdateTask(taskId, t =>
+                        {
+                            t.Status = DownloadTaskStatus.Running;
+                            t.Message = "正在下载...";
+                        });
+
+                        // 执行下载
+                        var result = await ParseAndDownloadAsync(task.Url);
+
+                        // 更新结果
+                        DownloadTaskManager.Instance.UpdateTask(taskId, t =>
+                        {
+                            t.Title = result?.Title;
+                            t.Author = result?.Author;
+                            t.CoverUrl = result?.CoverUrl;
+                            t.Status = result?.DownloadStatus == 2 ? DownloadTaskStatus.Completed : DownloadTaskStatus.Failed;
+                            t.Message = result?.Message ?? "下载失败";
+                            t.CompleteTime = DateTime.Now;
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        DownloadTaskManager.Instance.UpdateTask(taskId, t =>
+                        {
+                            t.Status = DownloadTaskStatus.Failed;
+                            t.Message = ex.Message;
+                            t.CompleteTime = DateTime.Now;
+                        });
+                    }
+                }
+
+                // 清理旧任务
+                DownloadTaskManager.Instance.CleanupOldTasks();
+            }
+            finally
+            {
+                DownloadTaskManager.Instance.IsProcessing = false;
+            }
+        }
+
+        /// <summary>
         /// 解析并下载视频
         /// </summary>
         public async Task<ParseVideoResponse> ParseAndDownloadAsync(string url, string savePath = null)
@@ -260,10 +349,12 @@ namespace dy.net.service
                     savePath = cookieInfo.SavePath ?? Environment.CurrentDirectory;
                 }
 
-                // 清理文件名中的非法字符
-                var safeAuthor = string.IsNullOrWhiteSpace(detail.Author) ? "unknown" : 
-                    Regex.Replace(detail.Author, @"[\\/:*?""<>|]", "_");
-                var fileName = $"{safeAuthor}_{awemeId}.mp4";
+                // 使用视频标题命名，清理非法字符
+                var safeTitle = string.IsNullOrWhiteSpace(detail.Title) ? awemeId : 
+                    Regex.Replace(detail.Title, @"[\\/:*?""<>|\n\r]", "").Trim();
+                // 限制文件名长度（避免过长）
+                if (safeTitle.Length > 80) safeTitle = safeTitle.Substring(0, 80);
+                var fileName = $"{safeTitle}.mp4";
                 var fullPath = Path.Combine(savePath, "parse", fileName);
 
                 // 确保目录存在

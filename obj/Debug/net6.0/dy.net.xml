@@ -121,19 +121,30 @@
             视频解析下载控制器
             </summary>
         </member>
+        <member name="M:dy.net.Controllers.ParseController.SubmitTask(dy.net.dto.ParseVideoRequest)">
+            <summary>
+            提交下载任务（异步，立即返回）
+            </summary>
+        </member>
+        <member name="M:dy.net.Controllers.ParseController.GetTask(System.String)">
+            <summary>
+            查询任务状态
+            </summary>
+        </member>
+        <member name="M:dy.net.Controllers.ParseController.GetAllTasks">
+            <summary>
+            获取所有任务列表
+            </summary>
+        </member>
         <member name="M:dy.net.Controllers.ParseController.ParseInfo(dy.net.dto.ParseVideoRequest)">
             <summary>
             解析视频信息（不下载）
             </summary>
-            <param name="request">包含视频链接</param>
-            <returns>视频详情</returns>
         </member>
         <member name="M:dy.net.Controllers.ParseController.ParseAndDownload(dy.net.dto.ParseVideoRequest)">
             <summary>
-            解析并下载视频
+            同步下载（等待完成）
             </summary>
-            <param name="request">包含视频链接和可选保存路径</param>
-            <returns>下载结果</returns>
         </member>
         <member name="M:dy.net.Controllers.VideoController.GetPagedAsync(dy.net.dto.DouyinVideoPageRequestDto)">
             <summary>
@@ -1997,17 +2008,6 @@
             <param name="cookie">用户Cookie（可选）</param>
             <returns>包含视频详情的对象</returns>
         </member>
-        <member name="M:dy.net.service.DouyinHttpClientService.ExtractAuthorSecUidAsync(System.String,System.String)">
-            <summary>
-            从视频分享页面提取作者的sec_uid
-            使用 iesdouyin.com/share/video 端点，该端点返回作者信息
-            </summary>
-        </member>
-        <member name="M:dy.net.service.DouyinHttpClientService.GetVideoByPostApiAsync(System.String,System.String,System.String)">
-            <summary>
-            通过作品列表API获取特定视频
-            </summary>
-        </member>
         <member name="T:dy.net.service.DouyinMergeVideoService">
             <summary>
             合并多张图片+音频为视频
@@ -2059,6 +2059,16 @@
         <member name="M:dy.net.service.DouyinParseService.GetVideoDetailAsync(System.String,System.String)">
             <summary>
             获取视频详情 - 使用和同步功能相同的API
+            </summary>
+        </member>
+        <member name="M:dy.net.service.DouyinParseService.SubmitDownloadTaskAsync(System.String)">
+            <summary>
+            提交异步下载任务（立即返回任务ID）
+            </summary>
+        </member>
+        <member name="M:dy.net.service.DouyinParseService.ProcessTasksAsync">
+            <summary>
+            后台处理下载任务
             </summary>
         </member>
         <member name="M:dy.net.service.DouyinParseService.ParseAndDownloadAsync(System.String,System.String)">
@@ -2165,6 +2175,56 @@
             获取待重新下载的视频列表
             </summary>
             <returns></returns>
+        </member>
+        <member name="T:dy.net.service.DownloadTaskStatus">
+            <summary>
+            下载任务状态
+            </summary>
+        </member>
+        <member name="T:dy.net.service.DownloadTask">
+            <summary>
+            下载任务信息
+            </summary>
+        </member>
+        <member name="T:dy.net.service.DownloadTaskManager">
+            <summary>
+            下载任务管理器（单例）
+            </summary>
+        </member>
+        <member name="M:dy.net.service.DownloadTaskManager.AddTask(System.String,System.String)">
+            <summary>
+            添加下载任务
+            </summary>
+        </member>
+        <member name="M:dy.net.service.DownloadTaskManager.GetTask(System.String)">
+            <summary>
+            获取任务状态
+            </summary>
+        </member>
+        <member name="M:dy.net.service.DownloadTaskManager.GetAllTasks">
+            <summary>
+            获取所有任务
+            </summary>
+        </member>
+        <member name="M:dy.net.service.DownloadTaskManager.UpdateTask(System.String,System.Action{dy.net.service.DownloadTask})">
+            <summary>
+            更新任务状态
+            </summary>
+        </member>
+        <member name="M:dy.net.service.DownloadTaskManager.DequeueTask">
+            <summary>
+            获取下一个待处理任务
+            </summary>
+        </member>
+        <member name="M:dy.net.service.DownloadTaskManager.CleanupOldTasks">
+            <summary>
+            清理已完成的旧任务（保留最近20个）
+            </summary>
+        </member>
+        <member name="P:dy.net.service.DownloadTaskManager.IsProcessing">
+            <summary>
+            检查是否正在处理
+            </summary>
         </member>
         <member name="M:dy.net.utils.StringProcessor.ToOrdArray(System.String)">
             <summary>
