@@ -33,7 +33,7 @@ namespace dy.net.Controllers
 
             try
             {
-                var task = await _parseService.SubmitDownloadTaskAsync(request.Url);
+                var task = await _parseService.SubmitDownloadTaskAsync(request.Url, request.Type ?? "video");
                 return Ok(new { code = 0, message = "success", data = task });
             }
             catch (Exception ex)
@@ -130,6 +130,66 @@ namespace dy.net.Controllers
                 Serilog.Log.Error($"下载视频失败: {ex.Message}");
                 return Ok(new { code = -1, error = $"下载失败: {ex.Message}" });
             }
+        }
+
+        /// <summary>
+        /// 获取文本文件内容
+        /// </summary>
+        [HttpGet("text/{taskId}")]
+        public IActionResult GetTextContent(string taskId)
+        {
+            var task = DownloadTaskManager.Instance.GetTask(taskId);
+            if (task == null || string.IsNullOrEmpty(task.FilePath))
+            {
+                return Ok(new { code = -1, message = "任务不存在或文件路径为空" });
+            }
+
+            if (!System.IO.File.Exists(task.FilePath))
+            {
+                return Ok(new { code = -1, message = "文件不存在" });
+            }
+
+            try
+            {
+                var content = System.IO.File.ReadAllText(task.FilePath);
+                return Ok(new { code = 0, message = "success", data = content });
+            }
+            catch (Exception ex)
+            {
+                return Ok(new { code = -1, message = $"读取文件失败: {ex.Message}" });
+            }
+        }
+
+        /// <summary>
+        /// 播放媒体文件（视频/音频流）
+        /// </summary>
+        [HttpGet("media/{taskId}")]
+        [AllowAnonymous]
+        public IActionResult GetMediaFile(string taskId)
+        {
+            var task = DownloadTaskManager.Instance.GetTask(taskId);
+            if (task == null || string.IsNullOrEmpty(task.FilePath))
+            {
+                return NotFound("文件不存在");
+            }
+
+            if (!System.IO.File.Exists(task.FilePath))
+            {
+                return NotFound("文件不存在");
+            }
+
+            var ext = Path.GetExtension(task.FilePath).ToLower();
+            var contentType = ext switch
+            {
+                ".mp4" => "video/mp4",
+                ".mp3" => "audio/mpeg",
+                ".wav" => "audio/wav",
+                ".txt" => "text/plain",
+                _ => "application/octet-stream"
+            };
+
+            var stream = new FileStream(task.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            return File(stream, contentType, enableRangeProcessing: true);
         }
     }
 }

@@ -683,6 +683,15 @@ namespace dy.net.service
                     aweme.Video.Cover = new ImageInfo { UrlList = new List<string> { coverMatch.Groups[1].Value.Replace("\\u002F", "/") } };
                 }
 
+                // 提取音频URL（music.play_url）
+                var musicMatch = System.Text.RegularExpressions.Regex.Match(html, @"""music"".*?""play_url"".*?url_list.*?\[""([^""]+)""", System.Text.RegularExpressions.RegexOptions.Singleline);
+                if (musicMatch.Success)
+                {
+                    var audioUrl = musicMatch.Groups[1].Value.Replace("\\u002F", "/");
+                    aweme.Music = new Music { PlayUrl = new ImageInfo { UrlList = new List<string> { audioUrl } } };
+                    Serilog.Log.Debug($"提取到音频URL");
+                }
+
                 if (aweme.Video?.BitRate?.FirstOrDefault()?.PlayAddr?.UrlList?.FirstOrDefault() != null)
                 {
                     Serilog.Log.Debug($"成功从分享页面获取视频: {aweme.Desc?.Substring(0, Math.Min(30, aweme.Desc?.Length ?? 0))}...");

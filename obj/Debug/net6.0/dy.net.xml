@@ -146,6 +146,16 @@
             同步下载（等待完成）
             </summary>
         </member>
+        <member name="M:dy.net.Controllers.ParseController.GetTextContent(System.String)">
+            <summary>
+            获取文本文件内容
+            </summary>
+        </member>
+        <member name="M:dy.net.Controllers.ParseController.GetMediaFile(System.String)">
+            <summary>
+            播放媒体文件（视频/音频流）
+            </summary>
+        </member>
         <member name="M:dy.net.Controllers.VideoController.GetPagedAsync(dy.net.dto.DouyinVideoPageRequestDto)">
             <summary>
             分页查询收藏视频
@@ -417,6 +427,11 @@
             保存路径（可选，默认使用系统配置路径）
             </summary>
         </member>
+        <member name="P:dy.net.dto.ParseVideoRequest.Type">
+            <summary>
+            下载类型：video-视频 audio-音频（默认video）
+            </summary>
+        </member>
         <member name="T:dy.net.dto.ParseVideoResponse">
             <summary>
             解析视频响应
@@ -470,6 +485,16 @@
         <member name="P:dy.net.dto.ParseVideoResponse.VideoUrl">
             <summary>
             视频下载地址（内部使用）
+            </summary>
+        </member>
+        <member name="P:dy.net.dto.ParseVideoResponse.AudioUrl">
+            <summary>
+            音频下载地址（内部使用）
+            </summary>
+        </member>
+        <member name="P:dy.net.dto.ParseVideoResponse.FilePath">
+            <summary>
+            下载后的文件路径
             </summary>
         </member>
         <member name="P:dy.net.dto.ImageTagInfoItem.Architecture">
@@ -2061,20 +2086,25 @@
             获取视频详情 - 使用和同步功能相同的API
             </summary>
         </member>
-        <member name="M:dy.net.service.DouyinParseService.SubmitDownloadTaskAsync(System.String)">
+        <member name="M:dy.net.service.DouyinParseService.SubmitDownloadTaskAsync(System.String,System.String)">
             <summary>
             提交异步下载任务（立即返回任务ID）
             </summary>
+            <param name="url">视频链接</param>
+            <param name="type">下载类型：video-视频 audio-音频</param>
         </member>
         <member name="M:dy.net.service.DouyinParseService.ProcessTasksAsync">
             <summary>
             后台处理下载任务
             </summary>
         </member>
-        <member name="M:dy.net.service.DouyinParseService.ParseAndDownloadAsync(System.String,System.String)">
+        <member name="M:dy.net.service.DouyinParseService.ParseAndDownloadAsync(System.String,System.String,System.String)">
             <summary>
-            解析并下载视频
+            解析并下载视频或音频
             </summary>
+            <param name="url">视频链接</param>
+            <param name="savePath">保存路径</param>
+            <param name="type">下载类型：video-视频 audio-音频 text-转文字</param>
         </member>
         <member name="T:dy.net.service.DouyinQuartzJobService">
             <summary>
@@ -2186,12 +2216,17 @@
             下载任务信息
             </summary>
         </member>
+        <member name="P:dy.net.service.DownloadTask.Type">
+            <summary>
+            下载类型：video-视频 audio-音频
+            </summary>
+        </member>
         <member name="T:dy.net.service.DownloadTaskManager">
             <summary>
             下载任务管理器（单例）
             </summary>
         </member>
-        <member name="M:dy.net.service.DownloadTaskManager.AddTask(System.String,System.String)">
+        <member name="M:dy.net.service.DownloadTaskManager.AddTask(System.String,System.String,System.String)">
             <summary>
             添加下载任务
             </summary>
@@ -2433,6 +2468,14 @@
             异步执行FFmpeg命令
             </summary>
         </member>
+        <member name="M:dy.net.utils.FFmpegHelper.ExtractAudioAsync(System.String,System.String)">
+            <summary>
+            从视频中提取音频
+            </summary>
+            <param name="videoPath">视频文件路径</param>
+            <param name="audioPath">输出音频文件路径</param>
+            <returns>是否成功</returns>
+        </member>
         <member name="M:dy.net.utils.LogFileCleaner.CleanOldLogFiles(System.String,System.Int32)">
             <summary>
             清除指定目录下n天之前的日志文件
@@ -2470,6 +2513,21 @@
             <param name="emptyPlaceholder">占位符对应数据为空时的替换值（默认：空字符串）</param>
             <returns>生成的最终标题</returns>
             <exception cref="T:System.ArgumentNullException">模板为空时抛出</exception>
+        </member>
+        <member name="T:dy.net.utils.WhisperHelper">
+            <summary>
+            Whisper 语音转文字助手
+            </summary>
+        </member>
+        <member name="M:dy.net.utils.WhisperHelper.TranscribeAsync(System.String,System.String,System.String,System.String)">
+            <summary>
+            将音频转为文字
+            </summary>
+            <param name="audioPath">音频文件路径</param>
+            <param name="outputDir">输出目录（默认与音频同目录）</param>
+            <param name="model">模型大小：tiny, base, small, medium, large</param>
+            <param name="language">语言：zh（中文）, en（英文）等</param>
+            <returns>转录文本文件路径</returns>
         </member>
         <member name="M:dy.net.utils.XBogus.Md5StrToArray(System.String)">
             <summary>

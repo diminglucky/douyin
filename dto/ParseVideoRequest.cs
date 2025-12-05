@@ -14,6 +14,11 @@ namespace dy.net.dto
         /// 保存路径（可选，默认使用系统配置路径）
         /// </summary>
         public string SavePath { get; set; }
+
+        /// <summary>
+        /// 下载类型：video-视频 audio-音频（默认video）
+        /// </summary>
+        public string Type { get; set; } = "video";
     }
 
     /// <summary>
@@ -70,5 +75,15 @@ namespace dy.net.dto
         /// 视频下载地址（内部使用）
         /// </summary>
         public string VideoUrl { get; set; }
+
+        /// <summary>
+        /// 音频下载地址（内部使用）
+        /// </summary>
+        public string AudioUrl { get; set; }
+
+        /// <summary>
+        /// 下载后的文件路径
+        /// </summary>
+        public string FilePath { get; set; }
     }
 }

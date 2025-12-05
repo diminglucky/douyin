@@ -31,6 +31,10 @@ namespace dy.net.service
         public string Message { get; set; }
         public DateTime CreateTime { get; set; }
         public DateTime? CompleteTime { get; set; }
+        /// <summary>
+        /// 下载类型：video-视频 audio-音频
+        /// </summary>
+        public string Type { get; set; } = "video";
     }
 
     /// <summary>
@@ -53,7 +57,7 @@ namespace dy.net.service
         /// <summary>
         /// 添加下载任务
         /// </summary>
-        public string AddTask(string url, string awemeId)
+        public string AddTask(string url, string awemeId, string type = "video")
         {
             var taskId = Guid.NewGuid().ToString("N")[..8];
             var task = new DownloadTask
@@ -61,6 +65,7 @@ namespace dy.net.service
                 TaskId = taskId,
                 Url = url,
                 AwemeId = awemeId,
+                Type = type ?? "video",
                 Status = DownloadTaskStatus.Pending,
                 Message = "等待下载",
                 CreateTime = DateTime.Now
@@ -69,7 +74,7 @@ namespace dy.net.service
             _tasks[taskId] = task;
             _taskQueue.Enqueue(taskId);
 
-            Serilog.Log.Debug($"添加下载任务: {taskId}, awemeId: {awemeId}");
+            Serilog.Log.Debug($"添加下载任务: {taskId}, awemeId: {awemeId}, type: {type}");
 
             return taskId;
         }

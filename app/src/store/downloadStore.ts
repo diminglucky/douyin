@@ -13,6 +13,7 @@ export interface DownloadTask {
   message: string;
   createTime: string;
   completeTime: string | null;
+  type: string; // video-视频 audio-音频
 }
 
 export const useDownloadStore = defineStore('download', {
@@ -32,9 +33,9 @@ export const useDownloadStore = defineStore('download', {
 
   actions: {
     // 提交下载任务
-    async submitTask(url: string) {
+    async submitTask(url: string, type: string = 'video') {
       try {
-        const res: any = await http.post('/api/Parse/submit', { url });
+        const res: any = await http.post('/api/Parse/submit', { url, type });
         // http拦截器已经处理了code，这里res就是完整响应
         const task = (res.data || res) as DownloadTask;
         if (task && task.taskId) {

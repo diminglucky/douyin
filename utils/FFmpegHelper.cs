@@ -329,6 +329,62 @@ namespace dy.net.utils
             }
         }
 
+        /// <summary>
+        /// 从视频中提取音频
+        /// </summary>
+        /// <param name="videoPath">视频文件路径</param>
+        /// <param name="audioPath">输出音频文件路径</param>
+        /// <returns>是否成功</returns>
+        public async Task<bool> ExtractAudioAsync(string videoPath, string audioPath)
+        {
+            if (!File.Exists(videoPath))
+            {
+                Serilog.Log.Error($"视频文件不存在: {videoPath}");
+                return false;
+            }
+
+            try
+            {
+                // ffmpeg -i input.mp4 -vn -acodec libmp3lame -q:a 2 output.mp3
+                var arguments = $"-i \"{videoPath}\" -vn -acodec libmp3lame -q:a 2 -y \"{audioPath}\"";
+                
+                Serilog.Log.Debug($"提取音频: ffmpeg {arguments}");
+
+                using var process = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = _ffmpegExecutablePath,
+                        Arguments = arguments,
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        CreateNoWindow = true
+                    }
+                };
+
+                process.Start();
+                await process.WaitForExitAsync();
+
+                if (process.ExitCode == 0 && File.Exists(audioPath))
+                {
+                    Serilog.Log.Debug($"音频提取成功: {audioPath}");
+                    return true;
+                }
+                else
+                {
+                    var error = await process.StandardError.ReadToEndAsync();
+                    Serilog.Log.Error($"音频提取失败: {error}");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error($"提取音频异常: {ex.Message}");
+                return false;
+            }
+        }
+
         public void Dispose()
         {
             _cancellationTokenSource?.Cancel();
