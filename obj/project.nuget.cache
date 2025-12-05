@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "V68BkG66JdZ3xSyEDJOoRWtMTTkVHWlfD94Mcl+6ZEBb/i/TfgRmsQPBRF+NzRv9oQYLE7cK9IYfdT5zgD3KNw==",
+  "dgSpecHash": "T9RasbTVMkZUSvjEUjAfrq8+t5cEN1wJ4IMydmqx5I3+x8aS/Sj1PVYsxkS6HjgVf2/rwWaEtgVVszkStHftOw==",
   "success": true,
-  "projectFilePath": "/Users/diming/code/dysync.net/dy.net.csproj",
+  "projectFilePath": "/Users/diming/code/douyin/dy.net.csproj",
   "expectedPackageFiles": [
     "/Users/diming/.nuget/packages/bouncycastle.netcore/2.2.1/bouncycastle.netcore.2.2.1.nupkg.sha512",
     "/Users/diming/.nuget/packages/clocksnowflake/1.1.0/clocksnowflake.1.1.0.nupkg.sha512",

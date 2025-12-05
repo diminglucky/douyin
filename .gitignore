@@ -4,3 +4,20 @@
 *.dll
 collect/
 favorite/
+
+# 敏感数据目录
+db/
+logs/
+upload/
+uper/
+images/
+
+# 配置文件
+appsettings.*.json
+*.user
+
+# IDE
+.idea/
+.vscode/
+*.suo
+*.csproj.user

@@ -10,15 +10,27 @@ namespace dy.net.utils
 {
     public class FFmpegHelper : IDisposable
     {
-        #if DEBUG
-                // Debug 环境，通常是 Windows
-                private readonly string _ffmpegExecutablePath = "E:\\down\\ffmpeg\\bin\\ffmpeg.exe";
-                private readonly string _ffprobeExecutablePath = "E:\\down\\ffmpeg\\bin\\ffprobe.exe";
-        #else
-            // Release 环境，通常是 Docker Linux
-            private readonly string _ffmpegExecutablePath = "ffmpeg";
-            private readonly string _ffprobeExecutablePath = "ffprobe";
-        #endif
+        // 自动检测操作系统，使用系统PATH中的ffmpeg
+        private readonly string _ffmpegExecutablePath;
+        private readonly string _ffprobeExecutablePath;
+
+        public FFmpegHelper()
+        {
+            // macOS/Linux 直接使用命令名（需要在PATH中）
+            // Windows 如果有特定路径可以配置
+            if (OperatingSystem.IsWindows())
+            {
+                // Windows：尝试使用PATH中的ffmpeg，或指定路径
+                _ffmpegExecutablePath = "ffmpeg";
+                _ffprobeExecutablePath = "ffprobe";
+            }
+            else
+            {
+                // macOS/Linux：使用系统PATH
+                _ffmpegExecutablePath = "ffmpeg";
+                _ffprobeExecutablePath = "ffprobe";
+            }
+        }
 
 
         private Process _ffmpegProcess;

@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "6hS2jRMV/QSndzfbDWCDjdxjAIT80fjyUUzCPs5cYdY=",
+  "Hash": "NI5qhR58gj2Z5cVbyp/tv7rmdbRzLYrvAbg3o/XM1Y4=",
   "Source": "dy.net",
   "BasePath": "_content/dy.net",
   "Mode": "Default",
@@ -10,17 +10,17 @@
     {
       "Name": "dy.net/wwwroot",
       "Source": "dy.net",
-      "ContentRoot": "/Users/diming/code/dysync.net/wwwroot/",
+      "ContentRoot": "/Users/diming/code/douyin/wwwroot/",
       "BasePath": "_content/dy.net",
       "Pattern": "**"
     }
   ],
   "Assets": [
     {
-      "Identity": "/Users/diming/code/dysync.net/wwwroot/index.html",
+      "Identity": "/Users/diming/code/douyin/wwwroot/index.html",
       "SourceId": "dy.net",
       "SourceType": "Discovered",
-      "ContentRoot": "/Users/diming/code/dysync.net/wwwroot/",
+      "ContentRoot": "/Users/diming/code/douyin/wwwroot/",
       "BasePath": "_content/dy.net",
       "RelativePath": "index.html",
       "AssetKind": "All",

@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "/Users/diming/code/dysync.net/dy.net.csproj": {}
+    "/Users/diming/code/douyin/dy.net.csproj": {}
   },
   "projects": {
-    "/Users/diming/code/dysync.net/dy.net.csproj": {
+    "/Users/diming/code/douyin/dy.net.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/diming/code/dysync.net/dy.net.csproj",
+        "projectUniqueName": "/Users/diming/code/douyin/dy.net.csproj",
         "projectName": "dy.net",
-        "projectPath": "/Users/diming/code/dysync.net/dy.net.csproj",
+        "projectPath": "/Users/diming/code/douyin/dy.net.csproj",
         "packagesPath": "/Users/diming/.nuget/packages/",
-        "outputPath": "/Users/diming/code/dysync.net/obj/",
+        "outputPath": "/Users/diming/code/douyin/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/Users/diming/.nuget/NuGet/NuGet.Config"

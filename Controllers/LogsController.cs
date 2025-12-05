@@ -4,11 +4,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Net.Http;
+using System.Text.RegularExpressions;
 
 namespace dy.net.Controllers
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
+    [Authorize]
     public class LogsController : ControllerBase
     {
         private readonly IWebHostEnvironment webHostEnvironment;
@@ -23,6 +25,20 @@ namespace dy.net.Controllers
         [HttpGet]
         public async Task<IActionResult> GetLog(string type, string date)
         {
+            // 参数校验：防止路径遍历攻击
+            // type 只允许 debug/error/info
+            var allowedTypes = new[] { "debug", "error", "info" };
+            if (string.IsNullOrWhiteSpace(type) || !allowedTypes.Contains(type.ToLower()))
+            {
+                return BadRequest("无效的日志类型");
+            }
+
+            // date 只允许日期格式 yyyyMMdd
+            if (string.IsNullOrWhiteSpace(date) || !Regex.IsMatch(date, @"^\d{8}$"))
+            {
+                return BadRequest("无效的日期格式");
+            }
+
             // 统一使用当前工作目录，避免开发/生产环境路径不一致
             var filePath = Path.Combine(Directory.GetCurrentDirectory(), "logs", $"log-{type}-{date}.txt");
             if (!System.IO.File.Exists(filePath))

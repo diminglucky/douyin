@@ -116,6 +116,25 @@
             <param name="dto"></param>
             <returns></returns>
         </member>
+        <member name="T:dy.net.Controllers.ParseController">
+            <summary>
+            视频解析下载控制器
+            </summary>
+        </member>
+        <member name="M:dy.net.Controllers.ParseController.ParseInfo(dy.net.dto.ParseVideoRequest)">
+            <summary>
+            解析视频信息（不下载）
+            </summary>
+            <param name="request">包含视频链接</param>
+            <returns>视频详情</returns>
+        </member>
+        <member name="M:dy.net.Controllers.ParseController.ParseAndDownload(dy.net.dto.ParseVideoRequest)">
+            <summary>
+            解析并下载视频
+            </summary>
+            <param name="request">包含视频链接和可选保存路径</param>
+            <returns>下载结果</returns>
+        </member>
         <member name="M:dy.net.Controllers.VideoController.GetPagedAsync(dy.net.dto.DouyinVideoPageRequestDto)">
             <summary>
             分页查询收藏视频
@@ -371,6 +390,76 @@
         </member>
         <member name="P:dy.net.dto.MediaMergeRequest.VideoFps">
             <summary>视频帧率（默认25）</summary>
+        </member>
+        <member name="T:dy.net.dto.ParseVideoRequest">
+            <summary>
+            解析视频请求
+            </summary>
+        </member>
+        <member name="P:dy.net.dto.ParseVideoRequest.Url">
+            <summary>
+            抖音视频链接（支持分享链接和直接链接）
+            </summary>
+        </member>
+        <member name="P:dy.net.dto.ParseVideoRequest.SavePath">
+            <summary>
+            保存路径（可选，默认使用系统配置路径）
+            </summary>
+        </member>
+        <member name="T:dy.net.dto.ParseVideoResponse">
+            <summary>
+            解析视频响应
+            </summary>
+        </member>
+        <member name="P:dy.net.dto.ParseVideoResponse.AwemeId">
+            <summary>
+            视频ID
+            </summary>
+        </member>
+        <member name="P:dy.net.dto.ParseVideoResponse.Title">
+            <summary>
+            视频标题
+            </summary>
+        </member>
+        <member name="P:dy.net.dto.ParseVideoResponse.Author">
+            <summary>
+            作者昵称
+            </summary>
+        </member>
+        <member name="P:dy.net.dto.ParseVideoResponse.AuthorId">
+            <summary>
+            作者ID
+            </summary>
+        </member>
+        <member name="P:dy.net.dto.ParseVideoResponse.CoverUrl">
+            <summary>
+            封面地址
+            </summary>
+        </member>
+        <member name="P:dy.net.dto.ParseVideoResponse.Duration">
+            <summary>
+            视频时长（秒）
+            </summary>
+        </member>
+        <member name="P:dy.net.dto.ParseVideoResponse.IsImagePost">
+            <summary>
+            是否为图文
+            </summary>
+        </member>
+        <member name="P:dy.net.dto.ParseVideoResponse.DownloadStatus">
+            <summary>
+            下载状态：0-未下载 1-下载中 2-已完成 3-失败
+            </summary>
+        </member>
+        <member name="P:dy.net.dto.ParseVideoResponse.Message">
+            <summary>
+            下载进度或错误信息
+            </summary>
+        </member>
+        <member name="P:dy.net.dto.ParseVideoResponse.VideoUrl">
+            <summary>
+            视频下载地址（内部使用）
+            </summary>
         </member>
         <member name="P:dy.net.dto.ImageTagInfoItem.Architecture">
             <summary>
@@ -1900,6 +1989,25 @@
             清理不完整的文件
             </summary>
         </member>
+        <member name="M:dy.net.service.DouyinHttpClientService.GetVideoDetailAsync(System.String,System.String)">
+            <summary>
+            获取单个视频详情（直接从分享页面提取完整信息）
+            </summary>
+            <param name="awemeId">视频ID</param>
+            <param name="cookie">用户Cookie（可选）</param>
+            <returns>包含视频详情的对象</returns>
+        </member>
+        <member name="M:dy.net.service.DouyinHttpClientService.ExtractAuthorSecUidAsync(System.String,System.String)">
+            <summary>
+            从视频分享页面提取作者的sec_uid
+            使用 iesdouyin.com/share/video 端点，该端点返回作者信息
+            </summary>
+        </member>
+        <member name="M:dy.net.service.DouyinHttpClientService.GetVideoByPostApiAsync(System.String,System.String,System.String)">
+            <summary>
+            通过作品列表API获取特定视频
+            </summary>
+        </member>
         <member name="T:dy.net.service.DouyinMergeVideoService">
             <summary>
             合并多张图片+音频为视频
@@ -1932,6 +2040,31 @@
         </member>
         <member name="M:dy.net.service.DouyinMergeVideoService.DownloadMediaAsync(System.Collections.Generic.List{System.String},System.String,System.String,System.String,System.String)">
             <summary>通用媒体下载方法</summary>
+        </member>
+        <member name="T:dy.net.service.DouyinParseService">
+            <summary>
+            抖音视频解析服务 - 通过网页抓取获取视频信息
+            </summary>
+        </member>
+        <member name="M:dy.net.service.DouyinParseService.ExtractAwemeIdAsync(System.String)">
+            <summary>
+            从分享链接解析视频ID
+            </summary>
+        </member>
+        <member name="M:dy.net.service.DouyinParseService.ExtractVideoUrlFromHtml(System.String,System.String)">
+            <summary>
+            从HTML中提取视频下载地址
+            </summary>
+        </member>
+        <member name="M:dy.net.service.DouyinParseService.GetVideoDetailAsync(System.String,System.String)">
+            <summary>
+            获取视频详情 - 使用和同步功能相同的API
+            </summary>
+        </member>
+        <member name="M:dy.net.service.DouyinParseService.ParseAndDownloadAsync(System.String,System.String)">
+            <summary>
+            解析并下载视频
+            </summary>
         </member>
         <member name="T:dy.net.service.DouyinQuartzJobService">
             <summary>

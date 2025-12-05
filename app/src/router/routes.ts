@@ -108,6 +108,18 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/workplace/Workplace.vue'),
   },
   {
+    path: '/parse',
+    name: '单视频下载',
+    meta: {
+      icon: 'CloudDownloadOutlined',
+      view: 'self',
+      target: '_self',
+      renderMenu: true,
+      cacheable: false,
+    },
+    component: () => import('@/pages/parse/ParseVideo.vue'),
+  },
+  {
     path: '/follow',
     name: '关注列表',
     meta: {
