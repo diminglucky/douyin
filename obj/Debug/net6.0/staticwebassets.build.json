@@ -1,0 +1,37 @@
+{
+  "Version": 1,
+  "Hash": "6hS2jRMV/QSndzfbDWCDjdxjAIT80fjyUUzCPs5cYdY=",
+  "Source": "dy.net",
+  "BasePath": "_content/dy.net",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [
+    {
+      "Name": "dy.net/wwwroot",
+      "Source": "dy.net",
+      "ContentRoot": "/Users/diming/code/dysync.net/wwwroot/",
+      "BasePath": "_content/dy.net",
+      "Pattern": "**"
+    }
+  ],
+  "Assets": [
+    {
+      "Identity": "/Users/diming/code/dysync.net/wwwroot/index.html",
+      "SourceId": "dy.net",
+      "SourceType": "Discovered",
+      "ContentRoot": "/Users/diming/code/dysync.net/wwwroot/",
+      "BasePath": "_content/dy.net",
+      "RelativePath": "index.html",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot/index.html"
+    }
+  ]
+}
