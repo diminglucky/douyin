@@ -147,6 +147,14 @@
             <span>系统运行日志的保留天数，范围1-90天，过期自动清理</span>
           </div>
         </a-form-item>
+
+        <a-form-item has-feedback label="单视频下载路径" name="ParseSavePath" :wrapper-col="{ span: 12 }" style="margin-left:30px">
+          <a-input v-model:value="formState.ParseSavePath" placeholder="请输入单视频下载保存路径" />
+          <div class="flex items-start mt-1 text-sm text-gray-500">
+            <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+            <span>单视频下载页面的文件保存路径，留空则使用Cookie中配置的收藏夹路径</span>
+          </div>
+        </a-form-item>
         <!-- <a-form-item has-feedback label="是否自动去重" name="AutoDistinct" :wrapper-col="{ span: 10 }">
           <a-switch v-model:checked="formState.AutoDistinct" disabled />
           <div class="flex items-start mt-1 text-sm text-gray-500">
@@ -222,6 +230,7 @@ interface FormState {
   FullFollowedTitleTemplate: string; // 新增：完整模板字符串（自动生成）
   AutoDistinct: boolean;
   PriorityLevel: string;
+  ParseSavePath: string; // 单视频下载保存路径
 }
 
 // 表单初始数据
@@ -242,6 +251,7 @@ const formState: UnwrapRef<FormState> = reactive({
   FullFollowedTitleTemplate: '', // 初始为空
   AutoDistinct: false,
   PriorityLevel: '',
+  ParseSavePath: '', // 单视频下载保存路径
 });
 
 // 实时计算完整模板（可选：让用户实时预览，提交时无需重复计算）

@@ -14,17 +14,20 @@ namespace dy.net.service
         private readonly DouyinHttpClientService _httpClientService;
         private readonly DouyinCookieService _cookieService;
         private readonly DouyinCommonService _commonService;
+        private readonly ParseHistoryService _historyService;
 
         public DouyinParseService(
             IHttpClientFactory clientFactory,
             DouyinHttpClientService httpClientService,
             DouyinCookieService cookieService,
-            DouyinCommonService commonService)
+            DouyinCommonService commonService,
+            ParseHistoryService historyService)
         {
             _clientFactory = clientFactory;
             _httpClientService = httpClientService;
             _cookieService = cookieService;
             _commonService = commonService;
+            _historyService = historyService;
         }
 
         /// <summary>
@@ -270,6 +273,21 @@ namespace dy.net.service
                             t.Message = result?.Message ?? "下载失败";
                             t.CompleteTime = DateTime.Now;
                         });
+
+                        // 保存到历史记录
+                        if (result != null)
+                        {
+                            await _historyService.AddAsync(
+                                result.AwemeId,
+                                result.Title,
+                                result.Author,
+                                result.CoverUrl,
+                                task.Type,
+                                result.FilePath,
+                                result.DownloadStatus,
+                                result.Message
+                            );
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -373,10 +391,15 @@ namespace dy.net.service
             // 6. 执行下载
             try
             {
-                // 确定保存路径
+                // 确定保存路径：优先使用系统配置的单视频下载路径
                 if (string.IsNullOrWhiteSpace(savePath))
                 {
-                    savePath = cookieInfo.SavePath ?? Environment.CurrentDirectory;
+                    var appConfig = _commonService.GetConfig();
+                    savePath = appConfig?.ParseSavePath;
+                    if (string.IsNullOrWhiteSpace(savePath))
+                    {
+                        savePath = cookieInfo.SavePath ?? Environment.CurrentDirectory;
+                    }
                 }
 
                 // 使用视频标题命名，清理非法字符

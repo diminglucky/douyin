@@ -83,6 +83,12 @@ namespace dy.net.model
         /// </summary>
         [SugarColumn(Length = 500, IsNullable = true)]
         public string PriorityLevel { get; set; }// = "[{\"id\":1,\"name\":\"喜欢的视频\",\"sort\":1},{\"id\":2,\"name\":\"收藏的视频\",\"sort\":2},{\"id\":3,\"name\":\"关注的视频\",\"sort\":3}]";
+
+        /// <summary>
+        /// 单视频下载保存路径
+        /// </summary>
+        [SugarColumn(Length = 500, IsNullable = true)]
+        public string ParseSavePath { get; set; }
     }
 
 }

@@ -14,10 +14,12 @@ namespace dy.net.Controllers
     public class ParseController : ControllerBase
     {
         private readonly DouyinParseService _parseService;
+        private readonly ParseHistoryService _historyService;
 
-        public ParseController(DouyinParseService parseService)
+        public ParseController(DouyinParseService parseService, ParseHistoryService historyService)
         {
             _parseService = parseService;
+            _historyService = historyService;
         }
 
         /// <summary>
@@ -189,6 +191,64 @@ namespace dy.net.Controllers
             };
 
             var stream = new FileStream(task.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            return File(stream, contentType, enableRangeProcessing: true);
+        }
+
+        /// <summary>
+        /// 获取下载历史记录
+        /// </summary>
+        [HttpGet("history")]
+        public async Task<IActionResult> GetHistory([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        {
+            var list = await _historyService.GetListAsync(page, pageSize);
+            var total = await _historyService.GetCountAsync();
+            return Ok(new { code = 0, message = "success", data = new { list, total, page, pageSize } });
+        }
+
+        /// <summary>
+        /// 删除历史记录
+        /// </summary>
+        [HttpDelete("history/{id}")]
+        public async Task<IActionResult> DeleteHistory(string id)
+        {
+            var result = await _historyService.DeleteAsync(id);
+            return Ok(new { code = result ? 0 : -1, message = result ? "删除成功" : "删除失败" });
+        }
+
+        /// <summary>
+        /// 清空历史记录
+        /// </summary>
+        [HttpDelete("history/clear")]
+        public async Task<IActionResult> ClearHistory()
+        {
+            var count = await _historyService.ClearAllAsync();
+            return Ok(new { code = 0, message = $"已清空 {count} 条记录" });
+        }
+
+        /// <summary>
+        /// 预览历史记录文件
+        /// </summary>
+        [HttpGet("history/preview/{id}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> PreviewHistory(string id)
+        {
+            var history = await _historyService.GetByIdAsync(id);
+            if (history == null)
+                return NotFound(new { code = -1, message = "历史记录不存在" });
+
+            if (string.IsNullOrEmpty(history.FilePath) || !System.IO.File.Exists(history.FilePath))
+                return NotFound(new { code = -1, message = "文件不存在或已被删除" });
+
+            var ext = Path.GetExtension(history.FilePath).ToLower();
+            var contentType = ext switch
+            {
+                ".mp4" => "video/mp4",
+                ".mp3" => "audio/mpeg",
+                ".txt" => "text/plain; charset=utf-8",
+                _ => "application/octet-stream"
+            };
+
+            var stream = new FileStream(history.FilePath, FileMode.Open, FileAccess.Read);
             return File(stream, contentType, enableRangeProcessing: true);
         }
     }

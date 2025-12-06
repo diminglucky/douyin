@@ -16,10 +16,26 @@ export interface DownloadTask {
   type: string; // video-视频 audio-音频
 }
 
+export interface HistoryItem {
+  id: string;
+  awemeId: string;
+  title: string;
+  author: string;
+  coverUrl: string;
+  downloadType: string;
+  filePath: string;
+  status: number;
+  message: string;
+  downloadTime: string;
+}
+
 export const useDownloadStore = defineStore('download', {
   state: () => ({
     tasks: [] as DownloadTask[],
     polling: false,
+    history: [] as HistoryItem[],
+    historyTotal: 0,
+    historyPage: 1,
   }),
 
   getters: {
@@ -80,7 +96,17 @@ export const useDownloadStore = defineStore('download', {
       if (!this.polling) return;
 
       try {
+        // 记录之前的完成任务数
+        const prevCompleted = this.tasks.filter(t => t.status === 2 || t.status === 3).length;
+        
         await this.fetchTasks();
+        
+        // 检查是否有新完成的任务
+        const nowCompleted = this.tasks.filter(t => t.status === 2 || t.status === 3).length;
+        if (nowCompleted > prevCompleted) {
+          // 有新任务完成，刷新历史记录
+          this.fetchHistory(1);
+        }
         
         // 如果还有进行中的任务，继续轮询
         if (this.hasActiveTask) {
@@ -101,6 +127,43 @@ export const useDownloadStore = defineStore('download', {
     // 清空已完成任务
     clearCompleted() {
       this.tasks = this.tasks.filter(t => t.status === 0 || t.status === 1);
+    },
+
+    // 获取历史记录
+    async fetchHistory(page: number = 1, pageSize: number = 20) {
+      try {
+        const res: any = await http.get(`/api/Parse/history?page=${page}&pageSize=${pageSize}`);
+        const data = res.data || res;
+        if (data) {
+          this.history = data.list || [];
+          this.historyTotal = data.total || 0;
+          this.historyPage = page;
+        }
+      } catch (error) {
+        console.error('获取历史记录失败', error);
+      }
+    },
+
+    // 删除历史记录
+    async deleteHistory(id: string) {
+      try {
+        await http.delete(`/api/Parse/history/${id}`);
+        this.history = this.history.filter(h => h.id !== id);
+        this.historyTotal--;
+      } catch (error) {
+        console.error('删除历史记录失败', error);
+      }
+    },
+
+    // 清空历史记录
+    async clearHistory() {
+      try {
+        await http.delete('/api/Parse/history/clear');
+        this.history = [];
+        this.historyTotal = 0;
+      } catch (error) {
+        console.error('清空历史记录失败', error);
+      }
     },
   },
 });

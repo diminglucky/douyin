@@ -156,6 +156,26 @@
             播放媒体文件（视频/音频流）
             </summary>
         </member>
+        <member name="M:dy.net.Controllers.ParseController.GetHistory(System.Int32,System.Int32)">
+            <summary>
+            获取下载历史记录
+            </summary>
+        </member>
+        <member name="M:dy.net.Controllers.ParseController.DeleteHistory(System.String)">
+            <summary>
+            删除历史记录
+            </summary>
+        </member>
+        <member name="M:dy.net.Controllers.ParseController.ClearHistory">
+            <summary>
+            清空历史记录
+            </summary>
+        </member>
+        <member name="M:dy.net.Controllers.ParseController.PreviewHistory(System.String)">
+            <summary>
+            预览历史记录文件
+            </summary>
+        </member>
         <member name="M:dy.net.Controllers.VideoController.GetPagedAsync(dy.net.dto.DouyinVideoPageRequestDto)">
             <summary>
             分页查询收藏视频
@@ -1222,6 +1242,11 @@
             去重优先级配置，json字符串格式存储
             </summary>
         </member>
+        <member name="P:dy.net.model.AppConfig.ParseSavePath">
+            <summary>
+            单视频下载保存路径
+            </summary>
+        </member>
         <member name="P:dy.net.model.DouyinCookie.MyUserId">
             <summary>
             用户抖音ID，对应我关注信息里面的myself_user_id
@@ -1479,6 +1504,61 @@
         <member name="P:dy.net.model.DouyinVideoDelete.ViedoId">
             <summary>
             原视频Id
+            </summary>
+        </member>
+        <member name="T:dy.net.model.ParseDownloadHistory">
+            <summary>
+            单视频解析下载历史记录
+            </summary>
+        </member>
+        <member name="P:dy.net.model.ParseDownloadHistory.Id">
+            <summary>
+            主键ID
+            </summary>
+        </member>
+        <member name="P:dy.net.model.ParseDownloadHistory.AwemeId">
+            <summary>
+            视频ID (aweme_id)
+            </summary>
+        </member>
+        <member name="P:dy.net.model.ParseDownloadHistory.Title">
+            <summary>
+            视频标题
+            </summary>
+        </member>
+        <member name="P:dy.net.model.ParseDownloadHistory.Author">
+            <summary>
+            作者昵称
+            </summary>
+        </member>
+        <member name="P:dy.net.model.ParseDownloadHistory.CoverUrl">
+            <summary>
+            封面URL
+            </summary>
+        </member>
+        <member name="P:dy.net.model.ParseDownloadHistory.DownloadType">
+            <summary>
+            下载类型：video, audio, text
+            </summary>
+        </member>
+        <member name="P:dy.net.model.ParseDownloadHistory.FilePath">
+            <summary>
+            文件保存路径
+            </summary>
+        </member>
+        <member name="P:dy.net.model.ParseDownloadHistory.Status">
+            <summary>
+            下载状态：0-等待 1-下载中 2-完成 3-失败
+            </summary>
+        </member>
+        <member name="P:dy.net.model.ParseDownloadHistory.Message">
+            <summary>
+            状态消息
+            </summary>
+        </member>
+        <member name="P:dy.net.model.ParseDownloadHistory.DownloadTime">
+            <summary>
+            下载时间
             </summary>
         </member>
         <member name="M:dy.net.Program.Main(System.String[])">
@@ -2027,11 +2107,13 @@
         </member>
         <member name="M:dy.net.service.DouyinHttpClientService.GetVideoDetailAsync(System.String,System.String)">
             <summary>
-            获取单个视频详情（直接从分享页面提取完整信息）
+            获取视频详情（通过视频ID）- 使用post API获取无水印地址
             </summary>
-            <param name="awemeId">视频ID</param>
-            <param name="cookie">用户Cookie（可选）</param>
-            <returns>包含视频详情的对象</returns>
+        </member>
+        <member name="M:dy.net.service.DouyinHttpClientService.ExtractInfoFromSharePage(System.String)">
+            <summary>
+            从分享页面提取作者sec_uid和视频信息
+            </summary>
         </member>
         <member name="T:dy.net.service.DouyinMergeVideoService">
             <summary>
@@ -2259,6 +2341,41 @@
         <member name="P:dy.net.service.DownloadTaskManager.IsProcessing">
             <summary>
             检查是否正在处理
+            </summary>
+        </member>
+        <member name="T:dy.net.service.ParseHistoryService">
+            <summary>
+            单视频解析下载历史记录服务
+            </summary>
+        </member>
+        <member name="M:dy.net.service.ParseHistoryService.AddAsync(System.String,System.String,System.String,System.String,System.String,System.String,System.Int32,System.String)">
+            <summary>
+            添加下载记录
+            </summary>
+        </member>
+        <member name="M:dy.net.service.ParseHistoryService.GetListAsync(System.Int32,System.Int32)">
+            <summary>
+            获取下载历史列表（分页）
+            </summary>
+        </member>
+        <member name="M:dy.net.service.ParseHistoryService.GetCountAsync">
+            <summary>
+            获取总数
+            </summary>
+        </member>
+        <member name="M:dy.net.service.ParseHistoryService.GetByIdAsync(System.String)">
+            <summary>
+            根据ID获取记录
+            </summary>
+        </member>
+        <member name="M:dy.net.service.ParseHistoryService.DeleteAsync(System.String)">
+            <summary>
+            删除记录
+            </summary>
+        </member>
+        <member name="M:dy.net.service.ParseHistoryService.ClearAllAsync">
+            <summary>
+            清空所有记录
             </summary>
         </member>
         <member name="M:dy.net.utils.StringProcessor.ToOrdArray(System.String)">

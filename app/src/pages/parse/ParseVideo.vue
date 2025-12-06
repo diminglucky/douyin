@@ -32,8 +32,18 @@
         </a-input>
       </div>
 
-      <!-- 任务列表 -->
-      <div class="task-list" v-if="downloadStore.tasks.length > 0">
+      <!-- 标签页切换 -->
+      <div class="tab-bar">
+        <div class="tab-item" :class="{ active: activeTab === 'tasks' }" @click="activeTab = 'tasks'">
+          当前任务 ({{ downloadStore.tasks.length }})
+        </div>
+        <div class="tab-item" :class="{ active: activeTab === 'history' }" @click="switchToHistory">
+          历史记录 ({{ downloadStore.historyTotal }})
+        </div>
+      </div>
+
+      <!-- 当前任务列表 -->
+      <div class="task-list" v-if="activeTab === 'tasks' && downloadStore.tasks.length > 0">
         <div 
           class="task-card" 
           v-for="task in downloadStore.tasks" 
@@ -63,10 +73,50 @@
         </div>
       </div>
 
+      <!-- 历史记录列表 -->
+      <div class="task-list" v-else-if="activeTab === 'history' && downloadStore.history.length > 0">
+        <div 
+          class="task-card clickable" 
+          v-for="item in downloadStore.history" 
+          :key="item.id"
+          @click="handleHistoryPreview(item)"
+        >
+          <div class="task-cover" v-if="item.coverUrl">
+            <img :src="item.coverUrl" alt="封面" />
+            <div class="play-overlay">
+              <PlayCircleOutlined />
+            </div>
+          </div>
+          <div class="task-cover placeholder" v-else>
+            <HistoryOutlined />
+          </div>
+          <div class="task-detail">
+            <div class="task-title">{{ item.title || item.awemeId }}</div>
+            <div class="task-meta" v-if="item.author">@{{ item.author }}</div>
+            <div class="task-status-row">
+              <a-tag :color="getStatusColor(item.status)" size="small">
+                {{ getStatusText(item.status) }}
+              </a-tag>
+              <span class="task-type">{{ getTypeText(item.downloadType) }}</span>
+              <span class="task-time">{{ formatTime(item.downloadTime) }}</span>
+            </div>
+          </div>
+          <div class="task-action" @click.stop="handleDeleteHistory(item.id)">
+            <DeleteOutlined />
+          </div>
+        </div>
+        <!-- 加载更多 -->
+        <div class="load-more" v-if="downloadStore.history.length < downloadStore.historyTotal" @click="loadMoreHistory">
+          加载更多...
+        </div>
+      </div>
+
       <!-- 空状态提示 -->
       <div class="empty-tip" v-else>
-        <CloudDownloadOutlined class="empty-icon" />
-        <p>支持抖音分享链接或视频页面链接</p>
+        <CloudDownloadOutlined class="empty-icon" v-if="activeTab === 'tasks'" />
+        <HistoryOutlined class="empty-icon" v-else />
+        <p v-if="activeTab === 'tasks'">支持抖音分享链接或视频页面链接</p>
+        <p v-else>暂无下载历史</p>
       </div>
     </div>
 
@@ -121,18 +171,21 @@ import {
   DownloadOutlined,
   LinkOutlined,
   PlayCircleOutlined,
+  HistoryOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons-vue';
-import { useDownloadStore, DownloadTask } from '@/store/downloadStore';
+import { useDownloadStore, DownloadTask, HistoryItem } from '@/store/downloadStore';
 import http from '@/store/http';
 
 const downloadStore = useDownloadStore();
 const videoUrl = ref('');
 const downloadType = ref('video');
 const submitting = ref(false);
+const activeTab = ref<'tasks' | 'history'>('tasks');
 
 // 预览相关
 const previewVisible = ref(false);
-const previewTask = ref<DownloadTask | null>(null);
+const previewTask = ref<DownloadTask | HistoryItem | null>(null);
 const previewType = ref<'video' | 'audio' | 'text'>('video');
 const mediaUrl = ref('');
 const textContent = ref('');
@@ -222,8 +275,65 @@ const closePreview = () => {
   if (audioRef.value) audioRef.value.pause();
 };
 
+// 切换到历史记录
+const switchToHistory = () => {
+  activeTab.value = 'history';
+  // 每次切换都刷新历史记录
+  downloadStore.fetchHistory(1);
+};
+
+// 历史记录预览
+const handleHistoryPreview = async (item: HistoryItem) => {
+  if (item.status !== 2) return;
+  
+  previewTask.value = item;
+  const previewUrl = `/api/Parse/history/preview/${item.id}`;
+  
+  if (item.downloadType === 'text') {
+    previewType.value = 'text';
+    textLoading.value = true;
+    previewVisible.value = true;
+    
+    try {
+      const response = await http.get(previewUrl, { responseType: 'text' });
+      textContent.value = response.data;
+    } catch (e) {
+      textContent.value = '无法加载文本内容';
+    } finally {
+      textLoading.value = false;
+    }
+  } else {
+    previewType.value = item.downloadType === 'audio' ? 'audio' : 'video';
+    mediaUrl.value = previewUrl;
+    previewVisible.value = true;
+  }
+};
+
+// 删除历史记录
+const handleDeleteHistory = async (id: string) => {
+  await downloadStore.deleteHistory(id);
+  message.success('已删除');
+};
+
+// 加载更多历史
+const loadMoreHistory = () => {
+  downloadStore.fetchHistory(downloadStore.historyPage + 1);
+};
+
+// 格式化时间
+const formatTime = (time: string) => {
+  if (!time) return '';
+  const date = new Date(time);
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  const hour = date.getHours().toString().padStart(2, '0');
+  const min = date.getMinutes().toString().padStart(2, '0');
+  return `${month}-${day} ${hour}:${min}`;
+};
+
 onMounted(() => {
   downloadStore.fetchTasks();
+  downloadStore.fetchHistory(); // 预加载历史数量
 });
 
 onUnmounted(() => {
@@ -277,8 +387,37 @@ onUnmounted(() => {
   }
 }
 
+.tab-bar {
+  display: flex;
+  gap: 4px;
+  margin-top: 20px;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+
+  .tab-item {
+    flex: 1;
+    text-align: center;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: rgba(255, 255, 255, 0.5);
+
+    &:hover {
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    &.active {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+  }
+}
+
 .task-list {
-  margin-top: 24px;
+  margin-top: 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -379,6 +518,37 @@ onUnmounted(() => {
 .task-type {
   font-size: 11px;
   color: rgba(255, 255, 255, 0.35);
+}
+
+.task-time {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.3);
+  margin-left: auto;
+}
+
+.task-action {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  color: rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  transition: color 0.2s;
+
+  &:hover {
+    color: #ff4d4f;
+  }
+}
+
+.load-more {
+  text-align: center;
+  padding: 12px;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  font-size: 13px;
+
+  &:hover {
+    color: rgba(255, 255, 255, 0.6);
+  }
 }
 
 .empty-tip {

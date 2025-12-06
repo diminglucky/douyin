@@ -606,44 +606,107 @@ namespace dy.net.service
         }
 
         /// <summary>
-        /// 获取单个视频详情（直接从分享页面提取完整信息）
+        /// 获取视频详情（通过视频ID）- 使用post API获取无水印地址
         /// </summary>
-        /// <param name="awemeId">视频ID</param>
-        /// <param name="cookie">用户Cookie（可选）</param>
-        /// <returns>包含视频详情的对象</returns>
         public async Task<Aweme> GetVideoDetailAsync(string awemeId, string cookie)
         {
             if (string.IsNullOrWhiteSpace(awemeId))
                 throw new ArgumentException("视频ID不能为空", nameof(awemeId));
 
+            if (string.IsNullOrWhiteSpace(cookie))
+                throw new ArgumentException("Cookie不能为空", nameof(cookie));
+
             try
             {
-                // 直接从分享页面获取完整视频信息
-                var shareUrl = $"https://www.iesdouyin.com/share/video/{awemeId}";
-                Serilog.Log.Debug($"访问分享页面获取视频信息: {shareUrl}");
+                // 步骤1: 从分享页面获取信息
+                var (secUid, fallbackAweme) = await ExtractInfoFromSharePage(awemeId);
+                
+                if (string.IsNullOrWhiteSpace(secUid))
+                {
+                    Serilog.Log.Warning($"无法获取sec_uid，使用分享页面数据: {awemeId}");
+                    return fallbackAweme; // 返回分享页面的数据（可能有水印）
+                }
 
+                Serilog.Log.Debug($"获取到sec_uid: {secUid.Substring(0, Math.Min(20, secUid.Length))}...");
+
+                // 步骤2: 通过post API获取视频详情
+                using var httpClient = _clientFactory.CreateClient("dy_uper");
+                if (httpClient.DefaultRequestHeaders.Contains("Cookie"))
+                    httpClient.DefaultRequestHeaders.Remove("Cookie");
+                httpClient.DefaultRequestHeaders.Add("Cookie", cookie);
+
+                var parameters = DouyinBaseParamDics.InitializeDouyinPostParams();
+                parameters["sec_user_id"] = secUid;
+                parameters["locate_item_id"] = awemeId;
+                parameters["count"] = "20";
+                parameters["max_cursor"] = "0";
+
+                var queryString = new FormUrlEncodedContent(parameters);
+                string fullUrl = $"{DouYinApi}/post?{await queryString.ReadAsStringAsync()}";
+
+                Serilog.Log.Debug($"调用post API获取视频...");
+
+                var response = await httpClient.GetAsync(fullUrl);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Serilog.Log.Warning($"Post API请求失败: {response.StatusCode}，使用分享页面数据");
+                    return fallbackAweme;
+                }
+
+                var data = await response.Content.ReadAsStringAsync();
+                var result = JsonConvert.DeserializeObject<DouyinVideoInfo>(data);
+
+                if (result?.AwemeList == null || !result.AwemeList.Any())
+                {
+                    Serilog.Log.Warning($"Post API返回视频列表为空，使用分享页面数据");
+                    return fallbackAweme;
+                }
+
+                Serilog.Log.Debug($"Post API返回 {result.AwemeList.Count} 个视频");
+
+                // 查找目标视频
+                var targetVideo = result.AwemeList.FirstOrDefault(v => v.AwemeId == awemeId);
+                if (targetVideo != null)
+                {
+                    Serilog.Log.Debug($"找到目标视频: {targetVideo.Desc?.Substring(0, Math.Min(30, targetVideo.Desc?.Length ?? 0))}...");
+                    return targetVideo;
+                }
+
+                // 如果没找到，返回第一个
+                Serilog.Log.Warning($"未找到目标视频 {awemeId}，使用第一个视频");
+                return result.AwemeList[0];
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error($"GetVideoDetailAsync error: {ex.Message}");
+                // 尝试返回分享页面的fallback数据
+                var (_, fb) = await ExtractInfoFromSharePage(awemeId);
+                return fb;
+            }
+        }
+
+        /// <summary>
+        /// 从分享页面提取作者sec_uid和视频信息
+        /// </summary>
+        private async Task<(string secUid, Aweme fallback)> ExtractInfoFromSharePage(string awemeId)
+        {
+            try
+            {
+                var shareUrl = $"https://www.iesdouyin.com/share/video/{awemeId}";
                 using var handler = new HttpClientHandler { AllowAutoRedirect = true };
                 using var httpClient = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(15) };
                 httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15");
 
                 var response = await httpClient.GetAsync(shareUrl);
-                if (!response.IsSuccessStatusCode)
-                {
-                    Serilog.Log.Error($"访问分享页面失败: {response.StatusCode}");
-                    return null;
-                }
+                if (!response.IsSuccessStatusCode) return (null, null);
 
                 var html = await response.Content.ReadAsStringAsync();
+                
+                // 提取sec_uid（以MS4开头的字符串）
+                var secUidMatch = System.Text.RegularExpressions.Regex.Match(html, @"MS4[A-Za-z0-9_-]{30,}");
+                var secUid = secUidMatch.Success ? secUidMatch.Value : null;
 
-                // 验证视频ID是否匹配
-                var awemeIdMatch = System.Text.RegularExpressions.Regex.Match(html, @"""aweme_id""\s*:\s*""(\d+)""");
-                if (awemeIdMatch.Success && awemeIdMatch.Groups[1].Value != awemeId)
-                {
-                    Serilog.Log.Error($"视频ID不匹配: 请求={awemeId}, 返回={awemeIdMatch.Groups[1].Value}");
-                    return null;
-                }
-
-                // 提取视频信息
+                // 构建fallback Aweme（用于API失败时的回退）
                 var aweme = new Aweme { AwemeId = awemeId };
 
                 // 提取描述
@@ -651,18 +714,35 @@ namespace dy.net.service
                 if (descMatch.Success)
                     aweme.Desc = descMatch.Groups[1].Value;
 
-                // 提取作者信息
+                // 提取作者
                 var nicknameMatch = System.Text.RegularExpressions.Regex.Match(html, @"""nickname""\s*:\s*""([^""]+)""");
                 if (nicknameMatch.Success)
-                {
                     aweme.Author = new Author { Nickname = nicknameMatch.Groups[1].Value };
-                }
 
-                // 提取视频播放地址
-                var playAddrMatch = System.Text.RegularExpressions.Regex.Match(html, @"play_addr.*?url_list.*?\[""([^""]+)""", System.Text.RegularExpressions.RegexOptions.Singleline);
+                // 提取视频URL
+                string videoUrl = null;
+                
+                // 方法1：匹配 play_addr 的 url_list（JSON格式，使用\u002F编码）
+                var playAddrMatch = System.Text.RegularExpressions.Regex.Match(html, @"""play_addr"":\{""uri"":""[^""]+""[^}]*""url_list"":\[""([^""]+)""", System.Text.RegularExpressions.RegexOptions.Singleline);
                 if (playAddrMatch.Success)
                 {
-                    var videoUrl = playAddrMatch.Groups[1].Value.Replace("\\u002F", "/");
+                    videoUrl = playAddrMatch.Groups[1].Value.Replace("\\u002F", "/");
+                    Serilog.Log.Debug($"从play_addr提取到视频URL");
+                }
+                
+                // 方法2：备用匹配（更宽松）
+                if (string.IsNullOrEmpty(videoUrl))
+                {
+                    var fallbackMatch = System.Text.RegularExpressions.Regex.Match(html, @"https:\\u002F\\u002Faweme\.snssdk\.com\\u002Faweme\\u002Fv1\\u002Fplay[^""]+");
+                    if (fallbackMatch.Success)
+                    {
+                        videoUrl = fallbackMatch.Value.Replace("\\u002F", "/");
+                        Serilog.Log.Debug($"从备用匹配提取到视频URL");
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(videoUrl))
+                {
                     aweme.Video = new Video
                     {
                         BitRate = new List<VideoBitRate>
@@ -683,28 +763,20 @@ namespace dy.net.service
                     aweme.Video.Cover = new ImageInfo { UrlList = new List<string> { coverMatch.Groups[1].Value.Replace("\\u002F", "/") } };
                 }
 
-                // 提取音频URL（music.play_url）
+                // 提取音频URL
                 var musicMatch = System.Text.RegularExpressions.Regex.Match(html, @"""music"".*?""play_url"".*?url_list.*?\[""([^""]+)""", System.Text.RegularExpressions.RegexOptions.Singleline);
                 if (musicMatch.Success)
                 {
                     var audioUrl = musicMatch.Groups[1].Value.Replace("\\u002F", "/");
                     aweme.Music = new Music { PlayUrl = new ImageInfo { UrlList = new List<string> { audioUrl } } };
-                    Serilog.Log.Debug($"提取到音频URL");
                 }
 
-                if (aweme.Video?.BitRate?.FirstOrDefault()?.PlayAddr?.UrlList?.FirstOrDefault() != null)
-                {
-                    Serilog.Log.Debug($"成功从分享页面获取视频: {aweme.Desc?.Substring(0, Math.Min(30, aweme.Desc?.Length ?? 0))}...");
-                    return aweme;
-                }
-
-                Serilog.Log.Error("未能从分享页面提取视频播放地址");
-                return null;
+                return (secUid, aweme);
             }
             catch (Exception ex)
             {
-                Serilog.Log.Error($"GetVideoDetailAsync error: {ex.Message}");
-                return null;
+                Serilog.Log.Error($"ExtractInfoFromSharePage error: {ex.Message}");
+                return (null, null);
             }
         }
     }
